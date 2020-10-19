@@ -28,34 +28,44 @@ async function runNewProjectWizard(options) {
   const repoSlug = getGitHubRepoSlug();
   const fallbackProjectName = path.basename(process.cwd());
   const [defaultProjectName = fallbackProjectName] = (repoSlug && repoSlug.match(/[^/]+$/)) || [];
-
-  const responses = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'serverBaseUrl',
-      message: 'What is the URL of your LHCI server?',
-      default: options.serverBaseUrl || 'https://your-lhci-server.example.com/',
-    },
-    {
-      type: 'input',
-      name: 'projectName',
-      message: 'What would you like to name the project?',
-      validate: input => !!input.length,
-      default: defaultProjectName,
-    },
-    {
-      type: 'input',
-      name: 'projectExternalUrl',
-      message: "Where is the project's code hosted?",
-      default: `https://github.com/${repoSlug || '<org>/<repo>'}`,
-    },
-    {
-      type: 'input',
-      name: 'projectBaseBranch',
-      message: "What branch is considered the repo's trunk or main branch?",
-      default: 'master',
-    },
-  ]);
+  let projectParams = {};
+  try {
+    projectParams = options.projectParams && JSON.parse(options.projectParams);
+  } catch (error) {
+    options.projectParams = false;
+    return Promise.reject(
+      new Error('Invalid projectParams. projectParams should be a JSON string.')
+    );
+  }
+  const responses = options.projectParams
+    ? projectParams
+    : await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'serverBaseUrl',
+          message: 'What is the URL of your LHCI server?',
+          default: options.serverBaseUrl || 'https://your-lhci-server.example.com/',
+        },
+        {
+          type: 'input',
+          name: 'projectName',
+          message: 'What would you like to name the project?',
+          validate: input => !!input.length,
+          default: defaultProjectName,
+        },
+        {
+          type: 'input',
+          name: 'projectExternalUrl',
+          message: "Where is the project's code hosted?",
+          default: `https://github.com/${repoSlug || '<org>/<repo>'}`,
+        },
+        {
+          type: 'input',
+          name: 'projectBaseBranch',
+          message: "What branch is considered the repo's trunk or main branch?",
+          default: 'master',
+        },
+      ]);
 
   const api = new ApiClient({
     ...options,
